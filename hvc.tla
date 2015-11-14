@@ -14,7 +14,6 @@ SetMax(S) == CHOOSE i \in S : \A j \in S : i >= j
   {J0:while (pt[self] < STOP)
       {either 
        Recv:{ \* local or receive event
-         \* if not heard increase msg[self][not heard]= msg[self][not heard] + EPS
             await(\A k \in Procs: pt[self] < pt[k]+ EPS); \* NTP clock sync
             pt[self] := pt[self] +1;
             m := 1;
@@ -30,9 +29,9 @@ SetMax(S) == CHOOSE i \in S : \A j \in S : i >= j
          await(\A k \in Procs: pt[self] < pt[k]+ EPS); \* NTP clock sync
             pt[self] := pt[self] +1;
           if (vc[self]<pt[self]) vc[self]:=pt[self];
-          else vc[self] := vc[self]+1;     \*While loop here somewhere
+          else vc[self] := vc[self]+1;
             with(k \in Procs \ {self})
-                { msg[k][self]:=  vc[self]  };
+                { msg[k]:=  vc  };
         }    
       } 
   }
@@ -88,7 +87,7 @@ Send(self) == /\ pc[self] = "Send"
                     THEN /\ vc' = [vc EXCEPT ![self][self] = pt'[self]]
                     ELSE /\ vc' = [vc EXCEPT ![self][self] = vc[self][self]+1]
               /\ \E k \in Procs \ {self}:
-                   msg' = [msg EXCEPT ![k][self] = vc'[self][self]]
+                   msg' = [msg EXCEPT ![k] = vc'[self]]
               /\ pc' = [pc EXCEPT ![self] = "J0"]
               /\ m' = m
 
@@ -100,12 +99,16 @@ Next == (\E self \in Procs: j(self))
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in Procs : WF_vars(j(self))
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
-TypeOK == (\A k \in Procs : vc[k][k] >= pt[k] /\ vc[k][k] <= pt[k]+EPS)
+        
+Termination == <>(\A self \in ProcSet: pc[self] = "Done")  
+  
+\*Boundedness
+TypeOK == (\A k \in Procs : vc[k][k] >= pt[k])
 Sync == (\A k,n \in Procs: pt[k] <= pt[n]+EPS)
 Boundedl == (\A k \in Procs: vc[k][k] >= pt[k] /\ vc[k][k] <= pt[k]+EPS) 
 Boundedc == (\A k,p \in Procs: vc[k][k] >= vc[k][p]) 
+\*Boundedness
+
 
 \* END TRANSLATION
 ==================================================
