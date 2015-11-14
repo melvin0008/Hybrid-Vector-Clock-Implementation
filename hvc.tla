@@ -8,7 +8,7 @@ SetMax(S) == CHOOSE i \in S : \A j \in S : i >= j
 
 (* Hybrid Logical Clocks algorithm
 --algorithm hvc {
-  variable pt = [j \in Procs |-> 0], msg= [j \in Procs |-> [k \in Procs |-> 0]]; \* shared/aux var
+  variable pt = [j \in Procs |-> 0], msg= [j \in Procs |-> << >>]; \* shared/aux var
   fair process (j \in Procs)
   variable vc = [j \in Procs |-> 0];
   {J0:while (pt[self] < STOP)
@@ -28,8 +28,8 @@ SetMax(S) == CHOOSE i \in S : \A j \in S : i >= j
        Send:{ \* send event
          await(\A k \in Procs: pt[self] < pt[k]+ EPS); \* NTP clock sync
             pt[self] := pt[self] +1;
-            if (vc[self]<pt[self])vc[self]:=pt[self];
-            with(k \in Procs \ {self}){ msg[k][self] := vc[self] };
+            if (vc[self]<pt[self]) vc[self]:=pt[self];
+            with(k \in Procs \ {self}){ msg[k] := vc[self] };
         }    
       } 
   }
@@ -45,7 +45,7 @@ ProcSet == (Procs)
 
 Init == (* Global variables *)
         /\ pt = [j \in Procs |-> 0]
-        /\ msg = [j \in Procs |-> [k \in Procs |-> 0]]
+        /\ msg = [j \in Procs |-> << >>]
         (* Process j *)
         /\ vc = [self \in Procs |-> [j \in Procs |-> 0]]
         /\ pc = [self \in ProcSet |-> "J0"]
@@ -76,7 +76,7 @@ Send(self) == /\ pc[self] = "Send"
                     ELSE /\ TRUE
                          /\ vc' = vc
               /\ \E k \in Procs \ {self}:
-                   msg' = [msg EXCEPT ![k][self] = vc'[self][self]]
+                   msg' = [msg EXCEPT ![k] = vc'[self][self]]
               /\ pc' = [pc EXCEPT ![self] = "J0"]
 
 j(self) == J0(self) \/ Recv(self) \/ Send(self)
@@ -90,6 +90,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
-TypeOK == (\A k \in Procs : vc[k][k] >= pt[k] /\ vc[k][k] <= pt[k]+EPS)
 \* END TRANSLATION
 ==================================================
